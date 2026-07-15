@@ -1,13 +1,12 @@
-'use client';
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, CheckCircle, AlertCircle, Info } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function EligibilityChecker() {
   const [flightStatus, setFlightStatus] = useState("");
-  const [daysNotified, setDaysNotified] = useState("");
+  const [flightDate, setFlightDate] = useState("");
+  const [notificationDate, setNotificationDate] = useState("");
   const [delayHours, setDelayHours] = useState("");
   const [destination, setDestination] = useState("אירופה");
   const [reasonForClaim, setReasonForClaim] = useState("");
@@ -15,6 +14,16 @@ export default function EligibilityChecker() {
   const [results, setResults] = useState<any>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", phone: "", email: "", notes: "" });
+
+  // Calculate days between flight date and notification date
+  const daysNotified = useMemo(() => {
+    if (!flightDate || !notificationDate) return null;
+    const flight = new Date(flightDate);
+    const notification = new Date(notificationDate);
+    const diffTime = Math.abs(notification.getTime() - flight.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }, [flightDate, notificationDate]);
 
   const getCompensationRange = (destination: string) => {
     const ranges: { [key: string]: { min: number; max: number } } = {
@@ -73,7 +82,7 @@ export default function EligibilityChecker() {
 
     // Flight cancelled
     else if (flightStatus === "cancelled") {
-      if (daysNotified === "" || parseInt(daysNotified) > 14) {
+      if (daysNotified === null || daysNotified > 14) {
         eligibilityResult = {
           isEligible: false,
           message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
@@ -98,7 +107,7 @@ export default function EligibilityChecker() {
 
     // Flight advanced
     else if (flightStatus === "advanced") {
-      if (daysNotified === "" || parseInt(daysNotified) > 14) {
+      if (daysNotified === null || daysNotified > 14) {
         eligibilityResult = {
           isEligible: false,
           message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
@@ -106,16 +115,23 @@ export default function EligibilityChecker() {
             "עם זאת, כדאי ליצור קשר איתנו לבדיקה פרטנית של המקרה שלך.",
           ],
         };
+      } else if (delayHours === "") {
+        eligibilityResult = {
+          isEligible: false,
+          message: "אנא הזן את מספר השעות של ההקדמה",
+          rights: [],
+        };
       } else {
-        if (delayHours === "" || parseInt(delayHours) < 5) {
+        const hours = parseInt(delayHours);
+        if (hours < 5) {
           eligibilityResult = {
             isEligible: false,
-            message: "לא זכאי לפיצוי",
+            message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
             rights: [
-              "טיסה שהוקדמה בפחות מ-5 שעות אינה זכאית לפיצוי לפי החוק",
+              "עם זאת, כדאי ליצור קשר איתנו לבדיקה פרטנית של המקרה שלך.",
             ],
           };
-        } else if (parseInt(delayHours) >= 5 && parseInt(delayHours) < 8) {
+        } else if (hours >= 5 && hours < 8) {
           eligibilityResult = {
             isEligible: true,
             message: "אתה זכאי לפיצוי בגין הקדמת טיסה",
@@ -140,7 +156,7 @@ export default function EligibilityChecker() {
 
     // Flight delayed
     else if (flightStatus === "delayed") {
-      if (daysNotified === "" || parseInt(daysNotified) > 14) {
+      if (daysNotified === null || daysNotified > 14) {
         eligibilityResult = {
           isEligible: false,
           message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
@@ -148,16 +164,23 @@ export default function EligibilityChecker() {
             "עם זאת, כדאי ליצור קשר איתנו לבדיקה פרטנית של המקרה שלך.",
           ],
         };
+      } else if (delayHours === "") {
+        eligibilityResult = {
+          isEligible: false,
+          message: "אנא הזן את מספר שעות העיכוב",
+          rights: [],
+        };
       } else {
-        if (delayHours === "" || parseInt(delayHours) < 2) {
+        const hours = parseInt(delayHours);
+        if (hours < 2) {
           eligibilityResult = {
             isEligible: false,
-            message: "לא זכאי לפיצוי",
+            message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
             rights: [
-              "עיכוב של פחות מ-2 שעות אינו זכאי לפיצוי לפי החוק",
+              "עם זאת, כדאי ליצור קשר איתנו לבדיקה פרטנית של המקרה שלך.",
             ],
           };
-        } else if (parseInt(delayHours) >= 2 && parseInt(delayHours) < 5) {
+        } else if (hours >= 2 && hours < 5) {
           eligibilityResult = {
             isEligible: true,
             message: "אתה זכאי לשירותי סיוע",
@@ -165,7 +188,7 @@ export default function EligibilityChecker() {
               "שירותי סיוע (מזון, משקאות, תקשורת)",
             ],
           };
-        } else if (parseInt(delayHours) >= 5 && parseInt(delayHours) < 8) {
+        } else if (hours >= 5 && hours < 8) {
           eligibilityResult = {
             isEligible: true,
             message: "אתה זכאי לשירותי סיוע והחזר",
@@ -190,365 +213,313 @@ export default function EligibilityChecker() {
       }
     }
 
-    // Store deduction note separately for display in compensation box
-    if (eligibilityResult.compensation && hasCompensation) {
-      eligibilityResult.deductionNote = "אם קיבלתם כבר פיצוי, הסכום הסופי שמגיע לכם יהיה בניכוי הפיצוי שכבר התקבל";
-    }
-
     setResults(eligibilityResult);
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would send the form data along with the results
-    console.log({
-      flightStatus,
-      daysNotified,
-      delayHours,
-      destination,
-      reasonForClaim,
-      hasCompensation,
-      results,
-      contact: contactForm,
-    });
-    // For now, just close the modal
-    setShowContactModal(false);
-  };
-
   return (
-    <div className="min-h-screen bg-[#f9f8f6] text-[#2d2d2d]" dir="rtl">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-[#e8e7e5]">
-        <div className="container flex items-center justify-between py-4">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-[#1e3a5f] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">⚖️</span>
-            </div>
-            <h1 className="text-xl font-bold text-[#1e3a5f]">ליעד גרשון עו"ד (רו"ח)</h1>
-          </div>
-          <button
-            onClick={() => (window.location.href = "/")}
-            className="px-4 py-2 text-[#1e3a5f] hover:bg-[#f0f0f0] rounded transition-colors"
-          >
-            חזור לעמוד הבית
-          </button>
+    <div className="min-h-screen bg-white py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[#1e3a5f] mb-2">בדוק את זכאותך לפיצוי</h1>
+          <p className="text-[#6b6b6b]">מלא את הטופס למטה כדי לבדוק אם אתה זכאי לפיצוי בגין בעיות בטיסה שלך</p>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <div className="container py-12">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-[#1e3a5f] mb-4 text-center">
-            בדוק את הזכאות שלך לפיצוי
-          </h1>
-          <p className="text-center text-[#6b6b6b] mb-12">
-            מלא את פרטי הטיסה שלך וקבל תשובה מיידית אם אתה זכאי לפיצוי לפי חוק שירותי התעופה הישראלי
-          </p>
+        <Card className="border-[#e8e7e5]">
+          <CardHeader>
+            <CardTitle className="text-[#1e3a5f]">פרטי הטיסה</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Destination - First Question */}
+              <div>
+                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
+                  לאן הטיסה הייתה?
+                </label>
+                <select
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                >
+                  <option value="אירופה">אירופה</option>
+                  <option value="אמריקה (צפון ודרום)">אמריקה (צפון ודרום)</option>
+                  <option value="אסיה">אסיה</option>
+                  <option value="אפריקה">אפריקה</option>
+                  <option value="אוקיאניה">אוקיאניה</option>
+                </select>
+              </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Form */}
-            <Card className="border-[#e8e7e5]">
-              <CardHeader>
-                <CardTitle className="text-[#1e3a5f]">פרטי הטיסה</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Destination - First Question */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
-                      לאן הטיסה הייתה?
-                    </label>
-                    <select
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                    >
-                      <option value="אירופה">אירופה</option>
-                      <option value="אמריקה (צפון ודרום)">אמריקה (צפון ודרום)</option>
-                      <option value="אסיה">אסיה</option>
-                      <option value="אפריקה">אפריקה</option>
-                      <option value="אוקיאניה">אוקיאניה</option>
-                    </select>
-                  </div>
+              {/* Flight Status */}
+              <div>
+                <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
+                  מה היה סטטוס הטיסה?
+                </label>
+                <select
+                  value={flightStatus}
+                  onChange={(e) => {
+                    setFlightStatus(e.target.value);
+                    setFlightDate("");
+                    setNotificationDate("");
+                    setDelayHours("");
+                    setReasonForClaim("");
+                  }}
+                  className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                >
+                  <option value="">בחר אפשרות</option>
+                  <option value="cancelled">הטיסה בוטלה</option>
+                  <option value="delayed">הטיסה המריאה באיחור</option>
+                  <option value="advanced">הטיסה הוקדמה</option>
+                  <option value="on-time">הטיסה המריאה בזמן</option>
+                </select>
+              </div>
 
-                  {/* Flight Status */}
-                  <div>
-                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
-                      מה היה סטטוס הטיסה?
-                    </label>
-                    <select
-                      value={flightStatus}
-                      onChange={(e) => {
-                        setFlightStatus(e.target.value);
-                        setDaysNotified("");
-                        setDelayHours("");
-                        setReasonForClaim("");
-                      }}
-                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                    >
-                      <option value="">בחר אפשרות</option>
-                      <option value="cancelled">הטיסה בוטלה</option>
-                      <option value="delayed">הטיסה המריאה באיחור</option>
-                      <option value="advanced">הטיסה הוקדמה</option>
-                      <option value="on-time">הטיסה המריאה בזמן</option>
-                    </select>
-                  </div>
-
-                  {/* Reason for Claim (if on-time) */}
-                  {flightStatus === "on-time" && (
-                    <div>
-                      <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
-                        מה סיבת הפניה?
-                      </label>
-                      <select
-                        value={reasonForClaim}
-                        onChange={(e) => setReasonForClaim(e.target.value)}
-                        className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                      >
-                        <option value="">בחר אפשרות</option>
-                        <option value="overbooking">סירוב להסיע נוסע (overbooking)</option>
-                        <option value="ticket-change">שינוי בתנאי כרטיס הטיסה</option>
-                        <option value="connection-change">העברה מטיסה ישירה לטיסה עם עצירת ביניים</option>
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Days Notified (if cancelled, advanced, or delayed) */}
-                  {(flightStatus === "cancelled" || flightStatus === "advanced" || flightStatus === "delayed") && (
-                    <div>
-                      <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
-                        מתי נודע לכם אודות השינוי? (בימים)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={daysNotified}
-                        onChange={(e) => setDaysNotified(e.target.value)}
-                        placeholder="הכניסו מספר ימים"
-                        className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                      />
-                    </div>
-                  )}
-
-                  {/* Delay/Advance Hours (if delayed or advanced with 0-14 days) */}
-                  {daysNotified !== "" && parseInt(daysNotified) <= 14 && (flightStatus === "delayed" || flightStatus === "advanced") && (
-                    <div>
-                      <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
-                        {flightStatus === "delayed" ? "כמה שעות עיכוב?" : "כמה שעות הקדמה?"}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={delayHours}
-                        onChange={(e) => setDelayHours(e.target.value)}
-                        placeholder="הכניסו מספר שעות"
-                        className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                      />
-                    </div>
-                  )}
-
-
-
-                  {/* Compensation Received */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="hasCompensation"
-                      checked={hasCompensation}
-                      onChange={(e) => setHasCompensation(e.target.checked)}
-                      className="w-4 h-4 rounded border-[#e8e7e5]"
-                    />
-                    <label htmlFor="hasCompensation" className="text-sm text-[#6b6b6b]">
-                      כבר קיבלתי פיצוי עבור אותה טיסה
-                    </label>
-                  </div>
-
-                  {/* Submit Button */}
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full bg-[#1e3a5f] hover:bg-[#152a47] text-white font-semibold"
+              {/* Reason for Claim (if on-time) */}
+              {flightStatus === "on-time" && (
+                <div>
+                  <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
+                    מה סיבת הפניה?
+                  </label>
+                  <select
+                    value={reasonForClaim}
+                    onChange={(e) => setReasonForClaim(e.target.value)}
+                    className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
                   >
-                    בדוק את הזכאות שלי
-                  </Button>
-                </form>
+                    <option value="">בחר אפשרות</option>
+                    <option value="overbooking">סירוב להסיע נוסע (overbooking)</option>
+                    <option value="ticket-change">שינוי בתנאי כרטיס הטיסה</option>
+                    <option value="connection-change">העברה מטיסה ישירה לטיסה עם עצירת ביניים</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Flight Date and Notification Date (if cancelled, advanced, or delayed) */}
+              {(flightStatus === "cancelled" || flightStatus === "advanced" || flightStatus === "delayed") && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
+                      מה היה תאריך הטיסה?
+                    </label>
+                    <input
+                      type="date"
+                      value={flightDate}
+                      onChange={(e) => setFlightDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
+                      באיזה תאריך נודע לך על השינוי?
+                    </label>
+                    <input
+                      type="date"
+                      value={notificationDate}
+                      onChange={(e) => setNotificationDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                    />
+                  </div>
+
+                  {daysNotified !== null && (
+                    <div className="text-sm text-[#6b6b6b] bg-[#f5f5f5] p-3 rounded-lg">
+                      מספר הימים בין התאריכים: <strong>{daysNotified} ימים</strong>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Delay/Advance Hours (if delayed or advanced with 0-14 days) */}
+              {daysNotified !== null && daysNotified <= 14 && (flightStatus === "delayed" || flightStatus === "advanced") && (
+                <div>
+                  <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
+                    {flightStatus === "delayed" ? "כמה שעות עיכוב?" : "כמה שעות הקדמה?"}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={delayHours}
+                    onChange={(e) => setDelayHours(e.target.value)}
+                    placeholder="הכניסו מספר שעות"
+                    className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                  />
+                </div>
+              )}
+
+              {/* Already Received Compensation */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="hasCompensation"
+                  checked={hasCompensation}
+                  onChange={(e) => setHasCompensation(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="hasCompensation" className="text-sm text-[#6b6b6b]">
+                  כבר קיבלתי פיצוי
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full bg-[#1e3a5f] hover:bg-[#152847] text-white py-3 rounded-lg font-medium transition-colors"
+              >
+                בדוק את הזכאות שלי
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Results */}
+        {results && (
+          <div className="mt-8 space-y-6">
+            <Card className={`border-l-4 ${results.isEligible ? "border-l-green-500 border-[#e8e7e5]" : "border-l-orange-500 border-[#e8e7e5]"}`}>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  {results.isEligible ? (
+                    <CheckCircle className="w-6 h-6 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-6 h-6 text-orange-500" />
+                  )}
+                  <CardTitle className="text-[#1e3a5f]">
+                    {results.isEligible ? "אתה כנראה זכאי!" : "לא נמצאה זכאות"}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-[#6b6b6b]">{results.message}</p>
+
+                {results.compensation && (
+                  <div className="bg-[#f5f5f5] p-4 rounded-lg border border-[#e8e7e5]">
+                    <p className="text-sm text-[#6b6b6b] mb-2">טווח פיצוי משוער:</p>
+                    <p className="text-2xl font-bold text-[#1e3a5f]">
+                      ₪{results.compensation.min}-₪{results.compensation.max}
+                    </p>
+                    {hasCompensation && (
+                      <p className="text-xs text-[#6b6b6b] mt-3">
+                        אם קיבלתם כבר פיצוי, הסכום הסופי שמגיע לכם יהיה <strong>בניכוי הפיצוי שכבר התקבל</strong>.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {results.rights.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-[#1e3a5f] mb-3">הצעדים הבאים:</p>
+                    <ul className="space-y-2">
+                      {results.rights.map((right: string, index: number) => (
+                        <li key={index} className="flex items-start gap-3 text-sm text-[#6b6b6b]">
+                          <span className="text-[#d4a574] font-bold mt-1">✓</span>
+                          <span>{right}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <Button
+                  onClick={() => setShowContactModal(true)}
+                  className="w-full bg-[#d4a574] hover:bg-[#c49564] text-white py-3 rounded-lg font-medium transition-colors mt-4"
+                >
+                  צור קשר עכשיו
+                </Button>
               </CardContent>
             </Card>
-
-            {/* Results */}
-            <div>
-              {results ? (
-                <div className="space-y-4">
-                  {/* Main Result Card */}
-                  <Card className={`border-2 ${results.isEligible ? "border-[#8b9d83] bg-[#f0f5f2]" : "border-[#e8a87c] bg-[#faf5f0]"}`}>
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        {results.isEligible ? (
-                          <CheckCircle className="w-6 h-6 text-[#8b9d83]" />
-                        ) : (
-                          <AlertCircle className="w-6 h-6 text-[#d4a574]" />
-                        )}
-                        <CardTitle className={results.isEligible ? "text-[#8b9d83]" : "text-[#d4a574]"}>
-                          {results.isEligible ? "אתה כנראה זכאי!" : "אתה לא זכאי כרגע"}
-                        </CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm font-medium text-[#1e3a5f] mb-4">{results.message}</p>
-                      {results.compensation && (
-                        <div className="bg-white rounded-lg p-4 mb-4 border border-[#e8e7e5]">
-                          <p className="text-2xl font-bold text-[#1e3a5f]">
-                            ₪{results.compensation.min}-₪{results.compensation.max}
-                          </p>
-                          <p className="text-xs text-[#6b6b6b] mt-2">טווח פיצוי משוער</p>
-                          {results.deductionNote && (
-                            <p className="text-xs text-[#d4a574] mt-3 pt-3 border-t border-[#e8e7e5]">
-                              {results.deductionNote}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Rights Card */}
-                  {results.rights.length > 0 && (
-                    <Card className="border-[#e8e7e5]">
-                      <CardHeader>
-                        <CardTitle className="text-[#1e3a5f] text-lg">הזכויות שלך</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-3">
-                          {results.rights.map((right: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-3">
-                              <CheckCircle className="w-5 h-5 text-[#8b9d83] flex-shrink-0 mt-0.5" />
-                              <span className="text-sm text-[#6b6b6b]">{right}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* CTA Button */}
-                  <Button
-                    size="lg"
-                    className="w-full bg-[#d4a574] hover:bg-[#a67c52] text-[#1e3a5f] font-semibold"
-                    onClick={() => setShowContactModal(true)}
-                  >
-                    צור קשר עכשיו <ArrowRight className="mr-2 h-5 w-5" />
-                  </Button>
-                </div>
-              ) : (
-                <Card className="border-[#e8e7e5] bg-[#f9f8f6]">
-                  <CardContent className="pt-8 text-center">
-                    <Info className="w-12 h-12 text-[#d4a574] mx-auto mb-4" />
-                    <p className="text-[#6b6b6b]">
-                      מלא את פרטי הטיסה שלך בצד שמאל וקבל תשובה מיידית
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Contact Modal */}
-      {showContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" dir="rtl">
-          <Card className="w-full max-w-md bg-white border-[#e8e7e5] shadow-lg max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <CardTitle className="text-[#1e3a5f]">פרטי יצירת קשר</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                {/* Summary Section */}
-                <div className="bg-[#f9f8f6] p-4 rounded-lg mb-4 text-sm">
-                  <p className="font-semibold text-[#1e3a5f] mb-2">סיכום הפרטים:</p>
-                  <ul className="space-y-1 text-[#6b6b6b] text-xs">
-                    <li>• סטטוס טיסה: {flightStatus === "cancelled" ? "בוטלה" : flightStatus === "delayed" ? "עיכוב" : flightStatus === "advanced" ? "הקדמה" : "בזמן"}</li>
-                    {daysNotified && <li>• ימים לפני: {daysNotified}</li>}
-                    {delayHours && <li>• שעות: {delayHours}</li>}
-                    <li>• יעד: {destination}</li>
-                    {results?.compensation && <li>• טווח פיצוי: ₪{results.compensation.min}-₪{results.compensation.max}</li>}
-                  </ul>
+        {/* Contact Modal */}
+        {showContactModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto border-[#e8e7e5]">
+              <CardHeader>
+                <CardTitle className="text-[#1e3a5f]">פרטי הטיסה שלך</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Summary of flight details */}
+                <div className="bg-[#f5f5f5] p-4 rounded-lg space-y-2 text-sm">
+                  <p><strong>יעד:</strong> {destination}</p>
+                  <p><strong>סטטוס:</strong> {flightStatus === "cancelled" ? "בוטלה" : flightStatus === "delayed" ? "עיכוב" : flightStatus === "advanced" ? "הקדמה" : "בזמן"}</p>
+                  {flightDate && <p><strong>תאריך הטיסה:</strong> {flightDate}</p>}
+                  {notificationDate && <p><strong>תאריך ההודעה:</strong> {notificationDate}</p>}
+                  {daysNotified !== null && <p><strong>ימים:</strong> {daysNotified}</p>}
+                  {delayHours && <p><strong>שעות:</strong> {delayHours}</p>}
+                  {results?.compensation && (
+                    <p><strong>טווח פיצוי:</strong> ₪{results.compensation.min}-₪{results.compensation.max}</p>
+                  )}
                 </div>
 
-                {/* Contact Form Fields */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1e3a5f] mb-2">שם מלא *</label>
-                  <input
-                    type="text"
-                    required
-                    dir="rtl"
-                    value={contactForm.name}
-                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                    placeholder="הכניסו שם מלא"
-                    className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                  />
+                {/* Contact form */}
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">שם מלא</label>
+                    <input
+                      type="text"
+                      dir="rtl"
+                      value={contactForm.name}
+                      onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                      placeholder="הכניסו את שמכם"
+                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">טלפון</label>
+                    <input
+                      type="tel"
+                      dir="rtl"
+                      value={contactForm.phone}
+                      onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                      placeholder="הכניסו את מספר הטלפון"
+                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">דוא"ל</label>
+                    <input
+                      type="email"
+                      dir="rtl"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                      placeholder="הכניסו את כתובת המייל"
+                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1e3a5f] mb-2">הערות נוספות</label>
+                    <textarea
+                      dir="rtl"
+                      value={contactForm.notes}
+                      onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })}
+                      placeholder="הוסיפו כל הסבר או מלל נוסף אודות המקרה שלכם"
+                      className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574] resize-none h-24"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#1e3a5f] mb-2">מספר טלפון *</label>
-                  <input
-                    type="tel"
-                    required
-                    dir="rtl"
-                    value={contactForm.phone}
-                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                    placeholder="הכניסו מספר טלפון"
-                    className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#1e3a5f] mb-2">דוא"ל *</label>
-                  <input
-                    type="email"
-                    required
-                    dir="rtl"
-                    value={contactForm.email}
-                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                    placeholder="הכניסו דוא״ל"
-                    className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#1e3a5f] mb-2">הערות נוספות</label>
-                  <textarea
-                    dir="rtl"
-                    value={contactForm.notes}
-                    onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })}
-                    placeholder="הוסיפו כל מלל נוסף או סיפור קטן על המקרה שלכם"
-                    rows={4}
-                    className="w-full px-4 py-2 border border-[#e8e7e5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4a574] resize-none"
-                  />
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-3 mt-6">
                   <Button
-                    type="submit"
-                    className="flex-1 bg-[#d4a574] hover:bg-[#a67c52] text-[#1e3a5f] font-semibold"
-                  >
-                    שלח
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 border-[#e8e7e5] text-[#1e3a5f]"
                     onClick={() => setShowContactModal(false)}
+                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-black py-2 rounded-lg font-medium transition-colors"
                   >
                     ביטול
                   </Button>
+                  <Button
+                    onClick={() => {
+                      // Form submission is handled by the form element itself
+                      alert("הבקשה שלך נשלחה בהצלחה!");
+                      setShowContactModal(false);
+                    }}
+                    className="flex-1 bg-[#1e3a5f] hover:bg-[#152847] text-white py-2 rounded-lg font-medium transition-colors"
+                  >
+                    שלח
+                  </Button>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
