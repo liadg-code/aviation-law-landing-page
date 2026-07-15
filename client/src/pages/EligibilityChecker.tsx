@@ -326,7 +326,7 @@ export default function EligibilityChecker() {
 
                   {daysNotified !== null && daysNotified !== "invalid" && (
                     <div className="text-sm text-[#6b6b6b] bg-[#f5f5f5] p-3 rounded-lg">
-                      מספר הימים בין התאריכים: <strong>{daysNotified} ימים</strong>
+                      מספר הימים: <strong>{daysNotified} ימים</strong>
                     </div>
                   )}
                   {daysNotified === "invalid" && (
