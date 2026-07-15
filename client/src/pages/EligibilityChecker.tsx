@@ -20,6 +20,12 @@ export default function EligibilityChecker() {
     if (!flightDate || !notificationDate) return null;
     const flight = new Date(flightDate);
     const notification = new Date(notificationDate);
+    
+    // Check if notification date is after flight date
+    if (notification > flight) {
+      return "invalid";
+    }
+    
     const diffTime = Math.abs(notification.getTime() - flight.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -82,7 +88,7 @@ export default function EligibilityChecker() {
 
     // Flight cancelled
     else if (flightStatus === "cancelled") {
-      if (daysNotified === null || daysNotified > 14) {
+      if (daysNotified === null || daysNotified === "invalid" || daysNotified > 14) {
         eligibilityResult = {
           isEligible: false,
           message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
@@ -107,7 +113,7 @@ export default function EligibilityChecker() {
 
     // Flight advanced
     else if (flightStatus === "advanced") {
-      if (daysNotified === null || daysNotified > 14) {
+      if (daysNotified === null || daysNotified === "invalid" || daysNotified > 14) {
         eligibilityResult = {
           isEligible: false,
           message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
@@ -156,7 +162,7 @@ export default function EligibilityChecker() {
 
     // Flight delayed
     else if (flightStatus === "delayed") {
-      if (daysNotified === null || daysNotified > 14) {
+      if (daysNotified === null || daysNotified === "invalid" || daysNotified > 14) {
         eligibilityResult = {
           isEligible: false,
           message: "לפי הנתונים שהוזנו, לא נמצאה זכאות לפיצוי מידי",
@@ -318,16 +324,21 @@ export default function EligibilityChecker() {
                     />
                   </div>
 
-                  {daysNotified !== null && (
+                  {daysNotified !== null && daysNotified !== "invalid" && (
                     <div className="text-sm text-[#6b6b6b] bg-[#f5f5f5] p-3 rounded-lg">
                       מספר הימים בין התאריכים: <strong>{daysNotified} ימים</strong>
+                    </div>
+                  )}
+                  {daysNotified === "invalid" && (
+                    <div className="text-sm text-white bg-red-500 p-3 rounded-lg">
+                      לא יתכן שתאריך ההודעה על השינוי מאוחר לתאריך הטיסה
                     </div>
                   )}
                 </>
               )}
 
               {/* Delay/Advance Hours (if delayed or advanced with 0-14 days) */}
-              {daysNotified !== null && daysNotified <= 14 && (flightStatus === "delayed" || flightStatus === "advanced") && (
+              {daysNotified !== null && daysNotified !== "invalid" && daysNotified <= 14 && (flightStatus === "delayed" || flightStatus === "advanced") && (
                 <div>
                   <label className="block text-sm font-medium text-[#1e3a5f] mb-2">
                     {flightStatus === "delayed" ? "כמה שעות עיכוב?" : "כמה שעות הקדמה?"}
