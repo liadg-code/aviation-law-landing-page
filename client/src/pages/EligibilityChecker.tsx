@@ -330,7 +330,7 @@ export default function EligibilityChecker() {
                     </div>
                   )}
                   {daysNotified === "invalid" && (
-                    <div className="text-sm text-white bg-red-500 p-3 rounded-lg">
+                    <div className="text-sm text-red-600 bg-[#f5f5f5] p-3 rounded-lg">
                       לא יתכן שתאריך ההודעה על השינוי מאוחר לתאריך הטיסה
                     </div>
                   )}
